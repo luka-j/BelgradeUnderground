@@ -7,8 +7,8 @@ import rs.luka.belgradeunderground.model.Station;
 import java.io.IOException;
 
 /*
- * a) struktura podataka: videti package model. Nije 'pogodna' u smislu nije graf (iako je blisko), s kojim bi bilo
- * lakse raditi u smislu koristiti poznate algoritme
+ * a) struktura podataka: videti package model. Nije 'pogodna' u smislu nije graf (iako je blisko), za koji bi bilo
+ *    lakse napisati algoritam (kopirati neki vec poznati)
  * b) postaviti Config#WALKING_ENABLED na false (nije testirano ovako, mozda se provukla neka greska)
  * c) (i) postaviti Config#WALKING_ENABLED na true
  *    (ii) videti ispod
