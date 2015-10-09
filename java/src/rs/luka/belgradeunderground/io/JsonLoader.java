@@ -2,11 +2,12 @@ package rs.luka.belgradeunderground.io;
 
 import com.google.gson.stream.JsonReader;
 import rs.luka.belgradeunderground.data.Base;
-import rs.luka.belgradeunderground.Main;
 import rs.luka.belgradeunderground.model.Line;
 import rs.luka.belgradeunderground.model.Station;
 
+import javax.swing.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +34,14 @@ public class JsonLoader {
             loadLines(base, new JsonReader(new FileReader(new File(workingDir, LINES_FILENAME)))); //stations before lines
             base.setWalkingPaths();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            String msg;
+            if (ex instanceof FileNotFoundException)
+                msg = "Nisu pronađeni odgovarajući fajlovi na datoj lokaciji";
+            else
+                msg = "Došlo je do greške pri učitavanju podataka iz json fajlova";
+            if (UserIO.isLaunchedFromTerminal()) System.out.println(msg);
+            else JOptionPane.showMessageDialog(null, msg, "Greška", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         }
         return base;
     }

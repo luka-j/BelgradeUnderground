@@ -2,7 +2,6 @@ package rs.luka.belgradeunderground.io;
 
 import rs.luka.belgradeunderground.Config;
 import rs.luka.belgradeunderground.data.Base;
-import rs.luka.belgradeunderground.Main;
 import rs.luka.belgradeunderground.model.Line;
 import rs.luka.belgradeunderground.model.Station;
 
@@ -56,9 +55,9 @@ public class BaseIO {
         String[] stationStrs = scan.next().split(OBJECT_SEPARATOR);
         for(String station : stationStrs)
             base.addStation(new Station(station));
-        scan.nextByte(); //pretpostavljam da je TYPE_SEPARATOR 1 bajt sirok
         scan.useDelimiter("\\Z");
         String[] lines = scan.next().split(OBJECT_SEPARATOR);
+        lines[0] = lines[0].substring(1); //prvi karakter je TYPE_SEPARATOR
         scan.close();
         for(String line : lines)
             base.addLine(new Line(line));

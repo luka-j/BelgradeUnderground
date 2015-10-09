@@ -8,27 +8,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
- * Created by luka on 14.9.15..
+ * Created by luka on 14.9.15.
  */
 public class Finder {
 
-    public static double COEFFICIENT_USED_TO_DETERMINE_IF_PATH_IS_TOO_LONG = Line.COST_WALK; //todo fml, spava mi se
     public static final int COST_TO_MIN_RATIO = 5500;
     public static final int SEARCH_WIDTH = 3;
-
+    public static final int PATH_CANDIDATES = 50;
+    public static double COEFFICIENT_USED_TO_DETERMINE_IF_PATH_IS_TOO_LONG = Line.COST_WALK; //todo fml, spava mi se
     private Station src;
     private List<PathTree> queue = new LinkedList<>();
-    private int iterator=0;
 
     //private PathList current = new PathList();
     //private List<PathList> dropped = new LinkedList<>();
 
     //private int lastCheck = 0;
     //private boolean goodLength;
+    private int iterator = 0;
 
     public Finder(Station src) {
         this.src = src;
@@ -75,8 +73,7 @@ public class Finder {
         return tree.getPath();
     }
 
-    public static final int PATH_CANDIDATES = 50;
-    public PathTree.Result quickFind() {
+    public PathTree.Result preciseFind() {
         List<PathTree.Result> possiblePaths = new ArrayList<>();
         PathTree nextNode = PathTree.init(src);
         for(int i=0; i<PATH_CANDIDATES; i++) {

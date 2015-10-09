@@ -1,5 +1,6 @@
 package rs.luka.belgradeunderground.data;
 
+import com.sun.istack.internal.NotNull;
 import rs.luka.belgradeunderground.Config;
 import rs.luka.belgradeunderground.io.LogUtils;
 import rs.luka.belgradeunderground.io.UserIO;
@@ -7,21 +8,28 @@ import rs.luka.belgradeunderground.model.Line;
 import rs.luka.belgradeunderground.model.Station;
 
 import javax.swing.*;
-import java.util.*;
-import java.util.logging.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
  * v3.5
  * Struktura koja cuva moguce putanje do nekog trenutka. Stablo koje se grana u zavisnosti od potencijalno optimalne dece.
  * Meri efikasnost putanje kao odnos pravolinijskog rastojanja od pocetka do trenutne lokacije i troska puta (cost) i
- * kada ono ode ispod definisane vrednosti, vraca se na node koji ima najvecu efikasnost.
+ * kada ono ode ispod definisane vrednosti definisani broj puta, vraca se na node koji ima najvecu efikasnost. Ponavlja
+ * dok ne dodje do cilja. Mana mu je da poslednjih MAX_EFFICIENCY_FAILS node-ova nece biti optimalni.
  *
  * Kratak istorijat:
  * v1: Prva verzija ovoga je bilo nesto sa listama, ni ne secam se vise. U svakom slucaju, ne znam kako mi je palo na
  * pamet, posto uopste nije imalo smisla. Od toga sam brzo odustao.
  * v2: iliti PathTree, nesto ovakvo. Koristio je listu za nodes, tzv. 'snapshots' i merio je efikasnost svakih n puta.
- * Glavna razlika je sto je uzimao samo po jedno dete i ubacivao u children (Station#getNextBestGuess), umesto nekoliko najboljih
+ * Glavna razlika je sto je uzimao samo po jedno dete i ubacivao u children (Station#getNextBestGuess), umesto nekoliko
+ * najboljih
  * v2.5: Izmenjen PathTree tako da za rollback (kada je efikasnost premala ili dodje do poslednje stanice) radi traversal
  * i izbacena sva static polja tako da u aplikaciji mogu da postoje vise stabala u isto vreme.
  * v3: iliti Paths, ovo samo umesto nodes svaki clan cuva optimalAncestor-a do tog trenutka. Iz nekog razloga sam osecao
@@ -37,11 +45,10 @@ import java.util.stream.Collectors;
  * @see Station#getNextBestGuesses(Line)
  */
 public class Paths implements Comparable<Paths> {
+    public static final double EFFICIENCY_EMPTY = 0;
     private static final boolean USE_NODE_QUEUE = true; //necessary evil
     //za USE_NODE_QUEUE = false algoritam je nedovrsen, netestiran i gotovo sigurno ima gresaka. Use at your own responsibility
     private static final Logger LOG = Logger.getLogger(Paths.class.getName());
-    public static final double EFFICIENCY_EMPTY = 0;
-
     private static final int NODES_INITIAL_SIZE = 384; //mozda treba i vise
     //PriorityQueue posto me zanima samo prvi, a potrebno je da uvek budu sortirani
     private static final PriorityQueue<Paths> nodes = new PriorityQueue<>(NODES_INITIAL_SIZE); //koriscenje heapa zajedno sa ovim stablom ocigledno nije optimalno, ali s obzirom da bolje ne stignem
@@ -64,13 +71,12 @@ public class Paths implements Comparable<Paths> {
 
     private final Paths parent;
     private final List<Paths> children = new LinkedList<>();
-    private int nextChild = 0; //iterator
-
     private final Station currentStation;
     private final Line currentLine;
     private final int level; //debugging purposes
     private final double cost;
     private final double efficiency;
+    private int nextChild = 0; //iterator
     private Reference optimalAncestor; //Prvobitno je bio ancestor, sada prihvata i siblings. Nekorisceno zbog nodes.
 
     /**
@@ -334,6 +340,20 @@ public class Paths implements Comparable<Paths> {
         return new FullPath(path, cost);
     }
 
+    @Override
+    public String toString() {
+        return currentLine.getId() + ": " + currentStation.getName(); //debugging purposes
+    }
+
+    @Override
+    public int compareTo(@NotNull Paths o) {
+        if (efficiency > o.efficiency)
+            return -1;
+        else if (efficiency < o.efficiency)
+            return 1;
+        else return 0;
+    }
+
     /**
      * Referenca na neki Paths objekat
      */
@@ -348,6 +368,7 @@ public class Paths implements Comparable<Paths> {
      * Cuva listu linija i stanica i ukupan trosak
      */
     public static class FullPath {
+        public static final int COST_TO_MIN_RATIO = 800; //pretty random
 
         private final List<LineStationPair> path;
         private final double cost;
@@ -360,7 +381,7 @@ public class Paths implements Comparable<Paths> {
         public void print() {
             boolean terminal = UserIO.isLaunchedFromTerminal() || Config.DEBUG;
             StringBuilder buffer = new StringBuilder();
-            if(terminal) System.out.println("Ruta");
+            if (terminal) System.out.println("Ruta: ");
             else buffer.append("Ruta\n");
             int brojStanica = 0;
             if(terminal) System.out.println(path.get(0)); //initial
@@ -389,8 +410,9 @@ public class Paths implements Comparable<Paths> {
                 if (terminal) System.out.println(path.get(path.size() - 1) + " (broj stanica: " + (brojStanica + 1) + ")"); //todo padezi
                 else buffer.append(path.get(path.size() - 1)).append(" (broj stanica: ").append(brojStanica + 1).append(")").append("\n");
             }
-            if(terminal) System.out.println("Cost: " + cost);
-            else buffer.append("Cost: ").append(cost);
+            String time = "Procenjeno vreme: " + Math.round(cost / COST_TO_MIN_RATIO) + "min";
+            if (terminal) System.out.println(time);
+            else buffer.append(time);
             if(!terminal) JOptionPane.showMessageDialog(null, buffer.toString());
         }
 
@@ -406,27 +428,13 @@ public class Paths implements Comparable<Paths> {
             @Override
             public String toString() {
                 if(line.isInitial()) {
-                    return "Pocetna stanica: " + station;
+                    return "Početna stanica: " + station;
                 }
                 if(line.isWalking()) {
-                    return "Setajte do stanice " + station;
+                    return "Šetajte do stanice " + station;
                 }
                 return "Vozite se linijom " + line + " do " + station;
             }
         }
-    }
-
-    @Override
-    public String toString() {
-        return currentLine.getId() + ": " + currentStation.getName(); //debugging purposes
-    }
-
-    @Override
-    public int compareTo(Paths o) {
-        if(efficiency > o.efficiency)
-            return -1;
-        else if (efficiency < o.efficiency)
-            return 1;
-        else return 0;
     }
 }

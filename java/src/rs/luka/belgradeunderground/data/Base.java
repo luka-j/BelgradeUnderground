@@ -7,7 +7,10 @@ import rs.luka.belgradeunderground.model.LatLng;
 import rs.luka.belgradeunderground.model.Line;
 import rs.luka.belgradeunderground.model.Station;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 /**
@@ -17,12 +20,13 @@ import java.util.concurrent.Executors;
  */
 public class Base {
     private static Base instance;
-    private Base() {}
-
     private Map<Integer, Station> stations = new HashMap<>();
     private HashMap<String, Line> lines = new HashMap<>();
     private Station goal;
     private Station start;
+
+    private Base() {
+    }
 
     public static Base getInstance() {
         if(instance == null) {
@@ -75,8 +79,13 @@ public class Base {
         return stations.values().iterator();
     }
 
+    public Station getGoal() {
+        return goal;
+    }
+
     public void setGoal(int goalStationId) {
         goal = getStation(goalStationId);
+        if (this.goal == null) throw new NullPointerException("Invalid goal id");
         /**
          * @deprecated presporo, pomalo besmisleno, a postoji bolji nacin
          */
@@ -89,16 +98,13 @@ public class Base {
         }
     }
 
-    public Station getGoal() {
-        return goal;
+    public Station getStart() {
+        return start;
     }
 
     public void setStart(int startId) {
         this.start = getStation(startId);
-    }
-
-    public Station getStart() {
-        return start;
+        if (this.start == null) throw new NullPointerException("Invalid start id");
     }
 
     /**

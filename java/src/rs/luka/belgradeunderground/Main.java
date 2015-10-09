@@ -7,24 +7,24 @@ import rs.luka.belgradeunderground.model.Station;
 import java.io.IOException;
 
 /*
- * a) struktura podataka: videti package model. Nije 'pogodna' u smislu nije graf (iako je blisko), s kojim bi bilo
- * lakse raditi u smislu koristiti poznate algoritme
+ * a) struktura podataka: videti package model. Nije 'pogodna' u smislu nije graf (iako je blisko), za koji bi bilo
+ *    lakse napisati algoritam (kopirati neki vec poznati)
  * b) postaviti Config#WALKING_ENABLED na false (nije testirano ovako, mozda se provukla neka greska)
  * c) (i) postaviti Config#WALKING_ENABLED na true
  *    (ii) videti ispod
  */
 
 /*
- * Algoritam:
+ * Odabir i nastajanje algorit(a)ma:
  * Ovo je verovatno prvi program koji sam pisao od osnove, tj. modela i nisam pokretao skoro dva dana dok sve nije bilo
  * gotovo. Izmedju ostalog, zato je ispalo nesto sto nije graf out-of-the-box (Station funkcionise samo preko
  * getNextBestGuess(es)). Moglo je sve to da se promeni tako da kod s Rozete moze doslovno da se kopira.
  * Optimalno resenje bi verovatno bio neki geneticki algoritam, ali s obzirom da o njima ne znam nista sem najosnovnijih
  * karakteristika s Vikipedije, gotovo sigurno ne bih nista postigao.
- * A* sam nameravao da napisem, cim podatke organizujem kako treba. Dijkstra is too mainstream.
+ * A* sam nameravao da napisem, cim podatke organizujem kako treba. Dijkstra is too mainstream (and boring).
  * U nekom trenutku mi je sinula divna ideja da mozda moze i bolje, s obzirom da radim sa linijama i stanicama o kojima
  * znam vise nego jednostavno 'to su cvorovi i ivice koji imaju tu i tu tezinu'. Posto ovo ne smatram 'ozbiljnim'
- * programom u smislu da ce imati siroku upotrebu van ove prijave (makar za sad), sto ne bih probao nesto drugacije.
+ * programom u smislu da ce imati siroku upotrebu van ove prijave (makar za sad), sto ne bih probao nesto drugacije?
  * Poznati algoritmi nisu ni izbliza toliko zanimljivi, a svaki koji garantuje optimalan rezultat je uz to verovatno i
  * prespor.
  * Ni u jednom trenutku nisam bio siguran sta tacno pisem, pa je maltene sve izdvojeno u konstantu (ili u slucaju
@@ -34,10 +34,12 @@ import java.io.IOException;
  * treba. PathQueue sam ispisao za manje od pola sata i logicno, i dalje nisam ubedjen da to zapravo funkcionise.
  * Probavao sam, i probavao, i probavao, i izgleda da radi. Ima par slucajeva gde ne pronalazi optimalne putanje, ali
  * je premasio moja ocekivanja, i sto se puta i sto se brzine tice. Ostavljam oba, i mogucnost da se lako promeni u
- * Configu.
+ * Configu. Opisi algoritama se nalaze u dokumentaciji odgovarajucih klasa.
  * Sto se kompleksnosti oba algoritma tice, brzi su. Zaista, retko prelaze 0.3s @ 3.2GHz, a za krace putanje
  * vreme im je ispod 0.1s. Ne, nemam pojma kolika je zapravo big-O slozenost niti sam sasvim siguran kako bi se ponasali
- * za veci dataset, ali je moja pretpostavka da bi se dobro snasli.
+ * za veci dataset, ali je moja pretpostavka da bi se dobro snasli. Trebalo bi ih benchmarkovati i uporediti s 'klasicnim'
+ * (Dijkstra/A*).
+ * Ubeđen sam da PathQueue ima neko ime, jer je prilično prost, samo nisam siguran koje.
  */
 
 /*
@@ -75,21 +77,25 @@ import java.io.IOException;
  *    LogUtils - postavljanje fajla i handlera za logger kada debugger nije dovoljan (ili praktican)
  *    UserIO - citanje ulaza iz argumenata ili graficki
  * model.LatLng - geografski podaci, predstavlja lokaciju i sve metode vezane za njih, 'skupe' tacke
- *       Line - predstavlja liniju, id, stajalista koja posecuje, tip vozila, smer, specijalne slucajeve (initial i walking)
- *       Station - predstavlja stanicu i veze do drugih stanica, odredjuje njihovu tezinu i vraca onog s najmanjom
+ *       Line - predstavlja liniju: id, stajalista koja posecuje, tip vozila, smer + specijalni slucajevi (initial i walking)
+ *       Station - predstavlja stanicu i veze do drugih stanica, odredjuje njihovu tezinu i sadrzi metodu koja vraca
+ *                 najbolju vezu (s najmanjom tezinom)
  * Config - cuva konstante bitne za rad programa
  * Main - pokrece odgovarajucu metodu pretrage
  */
 
 /*
  * Ostali komentari:
+ * Posto ste rekli da vam je bitan nacin razmisljanja i put do resenja, ostavljam i klase koje vise ne koristim (Finder
+ * i PathTree, uz jos neke iskomentarisane delove koda). Mislim da cu zazaliti zbog toga.
  * Verovatno preterana upotreba ?: Do sad sam ga retko koristio, ali se pokazao prilicno kompaktan u dosta slucajeva
  * Postoje slucajevi gde je dokumentacija pogodnija za komentar
  * Todo-ovi su negde pisani kod stvari koje nisu zapravo todo zbog boje teksta koja je zuta (za razliku od bledosive)
  * Margina je 120 karaktera. 80 mi cesto bude preusko i prevelika belina (ili 'crnina') mi ostaje desno
- * Zahvaljujem se Davidu sto mi je pomogao da ne napravim neke greske (https://github.com/geomaster/beoprevoz)
- * Izvinjavam se zbog nedostatka č, ć, ž, đ, š. Uglavnom me ne mrzi da koristim compose key, ali ovo sam uglavnom radio
- * uvece ili nocu, pa nisam imao snage da nabadam alt svaki put.
+ * Hvala Davidu sto mi je pomogao da izbegnem neke greske (https://github.com/geomaster/beoprevoz)
+ * Izvinjavam se zbog nedostatka č, ć, ž, đ, š. Uglavnom me ne mrzi da koristim compose key, ali na ovome sam radio
+ * uvece ili nocu, pa nisam imao snage da nabadam alt svaki put
+ * Line count: 2652
  */
 
 /**
@@ -106,16 +112,14 @@ public class Main {
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
         UserIO.read(args);
-        //locationTest();
-        //cvijicevaTest();
 
         long algoStart = System.currentTimeMillis();
         switch (Config.FINDING_METHOD) {
             case Config.PATHTREE_SIMPLEFIND:
                 simplefind();
                 break;
-            case Config.PATHTREE_QUICKFIND:
-                quickfind();
+            case Config.PATHTREE_PRECISEFIND:
+                precisefind();
                 break;
             case Config.PATHS:
                 paths(PathConfigs.STRICT);
@@ -128,7 +132,7 @@ public class Main {
         if(Config.DEBUG) System.out.println("Time spent in algorithm " + (algoEnd-algoStart)/1000.0);
 
         long end = System.currentTimeMillis();
-        System.out.println("Total time: " + (end - start) / 1000.0);
+        if (Config.DEBUG) System.out.println("Total time: " + (end - start) / 1000.0);
     }
 
     //slede metode sa nedeskriptivnim imenima, u principu pokrecu odredjeni algoritam i ispisuju rezultat
@@ -141,11 +145,11 @@ public class Main {
         resSimple.print();
     }
 
-    private static void quickfind() {
-        if(Config.DEBUG) System.out.println("Using quickfind");
+    private static void precisefind() {
+        if (Config.DEBUG) System.out.println("Using precisefind");
         Finder finder = new Finder(Base.getInstance().getStart());
         PathTree.Result res;
-        res = finder.quickFind();
+        res = finder.preciseFind();
         res.print();
     }
 

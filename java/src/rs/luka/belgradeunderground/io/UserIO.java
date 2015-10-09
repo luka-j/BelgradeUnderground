@@ -7,15 +7,15 @@ import javax.swing.*;
 import java.io.File;
 
 /**
- * Created by luka on 4.10.15..
+ * Created by luka on 4.10.15.
  */
 public class UserIO {
 
+    private static final String DEFAULT_HOME = "/home/luka/Downloads/02-belgrade-ug";
     private static boolean LAUNCHED_FROM_TERMINAL;
-    private static String DEFAULT_HOME = "/home/luka/Downloads/02-belgrade-ug";
     private static String HOME_PATH;
 
-    public static void read(String[] args) { //todo invalid value handling
+    public static void read(String[] args) {
         int src, dest;
         if(args.length > 2) {
             HOME_PATH = args[0];
@@ -34,15 +34,29 @@ public class UserIO {
                 HOME_PATH = JOptionPane.showInputDialog("Unesite putanju do direktorijuma sa podacima o trasama");
             }
             Base.getInstance().load(); //ovim redosledom doprinosi osećaju da je JVM zabagovao
-            String srcDest = JOptionPane.showInputDialog("Unesite identifikacione brojeve pocetne i krajnje stanice, razdvojene razmakom");
+            String srcDest = JOptionPane.showInputDialog("Unesite identifikacione brojeve početne i krajnje stanice, razdvojene razmakom");
             String[] idTokens = srcDest.split("\\s+");
             src = Integer.parseInt(idTokens[0]);
             dest = Integer.parseInt(idTokens[1]);
             LAUNCHED_FROM_TERMINAL = false;
         }
 
-        Base.getInstance().setStart(src);
-        Base.getInstance().setGoal(dest);
+        try {
+            Base.getInstance().setStart(src);
+        } catch (NullPointerException ex) {
+            String msg = "Stanica s identifikacionim brojem " + src + " nije pronađena";
+            if (LAUNCHED_FROM_TERMINAL) System.out.println(msg);
+            else JOptionPane.showMessageDialog(null, msg, "Greška", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+        try {
+            Base.getInstance().setGoal(dest);
+        } catch (NullPointerException ex) {
+            String msg = "Stanica s identifikacionim brojem " + dest + " nije pronađena";
+            if (LAUNCHED_FROM_TERMINAL) System.out.println(msg);
+            else JOptionPane.showMessageDialog(null, msg, "Greška", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
     }
 
     public static File getHomeDir() {
