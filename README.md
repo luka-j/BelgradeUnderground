@@ -4,7 +4,7 @@
 ## Problem
 Dat je json fajl sa podacima o linijama u gradskom prevozu (tj. bio je dat negde, ali ga u trenutku pisanja ovog readme-a ne mogu naći). Treba pronaći najbrži put između dve stanice koristeći linije gradskog prevoza.
 
-##Princip
+## Princip
 Osnovni pojmovi: 
 Line - predstavlja liniju prevoza i čuva stajališta na kojima ona staje
 Station - predstavlja jedno stajalište i čuva linkove do sledećih
