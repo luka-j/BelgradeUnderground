@@ -23,3 +23,7 @@ io.\* - učitavanje, ispis fajlova
 data.\* - podaci i algoritmi
 
 model.\* - model podataka
+
+## License
+
+MIT
